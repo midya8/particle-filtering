@@ -149,7 +149,7 @@ python -m particlelab filter examples/sequence.json --particles 32 --proposal co
 
 ## Validation and bounds
 
-**114 tests** cover one-step hand weights/moments/evidence, no-resampling evidence against full products over the initial sample, recovery of relative log mass after probability underflow, exact resampling boundary/zero-bin/offspring audits, RNG isolation, parent/root mappings, state-diversity versus ancestry, closed-form Gaussian/static-sequence references, extreme precision, strict CLI payloads, both success/failure demo checks and all plotted coordinates/values/SD polygon vertices. Static-square symmetry/modes, direct log-joint density ratios, sign-mass traces, dense joint-Gaussian smoothing references, forward path-copy equivalence, the finite backward-kernel law, conditional Gaussian proposals/predictive weights and all five SVGs are also checked. The expected-offspring test integrates a fixed rational-weight fixture over a systematic-offset grid; it is not a proof for all floats. CI runs Python 3.10..3.13 plus the demo and byte-identical SVG check.
+**118 tests** cover one-step hand weights/moments/evidence, no-resampling evidence against full products over the initial sample, recovery of relative log mass after probability underflow, exact resampling boundary/zero-bin/offspring audits, RNG isolation, parent/root mappings, state-diversity versus ancestry, closed-form Gaussian/static-sequence references, extreme precision, strict CLI payloads, both success/failure demo checks and all plotted coordinates/values/SD polygon vertices. Static-square symmetry/modes, direct log-joint density ratios, sign-mass traces, dense joint-Gaussian smoothing references, forward path-copy equivalence, the finite backward-kernel law, conditional Gaussian proposals/predictive weights and all five SVGs are also checked. The expected-offspring test integrates a fixed rational-weight fixture over a systematic-offset grid; it is not a proof for all floats. CI runs Python 3.10..3.13 plus the demo and byte-identical SVG check.
 
 Inputs: 1..80 finite observations in [-1e4,1e4]; a in [-1,1]; process std in [0,100]; observation/initial std in [1e-4,100]; initial mean in [-1e4,1e4]. Particles: integer 1..4096; `N*T <= 65536`. Seed: integer `0..2**32-1`. ESS fraction: [0,1]. Booleans are rejected as numbers. Full history uses `O(T*N)` time/output/memory, including `O(N)` systematic resampling, plus `O(T)` for the Kalman/RTS references. Retrospective reconstruction adds `O(T*N)` time/memory and returned full trajectories. The demo runs sixteen additional particle filters. All quantities use floating point and a finite local RNG. Tiny weights can underflow; finite logs survive only before resampling. Random draws are reproducible in the tested environment, not a cross-language bitstream contract.
 
@@ -162,3 +162,35 @@ Independent implementation inspired by Gordon, Salmond and Smith, **"Novel appro
 Standard retained-history SIR smoothing and scalar RTS references are independently implemented; [Särkkä and Svensson (2023), sections 12.2/15.1/15.2](https://users.aalto.fi/~ssarkka/pub/bfs_book_2023_online.pdf). No source text, code or figures copied.
 
 MIT license.
+
+## Large common likelihoods must not change relative prior mass
+
+Both proposal paths now subtract the common likelihood maximum before adding
+carried log weights, then normalize probabilities and logs in the centered
+coordinates. Subtracting a large absolute log normalizer afterward can lose the
+small differences that encode relative mass.
+
+A bounded three-observation control makes the problem visible: data
+`[0,10000,0]`, a=0, process std=0, observation/initial std=1e-4, two bootstrap
+particles, seed0 and resampling disabled. At the second observation both states
+are exactly zero, so their equal likelihoods should preserve the unequal prior
+weights. Previously weights changed from about [.629903,.370097] to
+[.731059,.268941], while exponentiated stored log weights summed to1.367879.
+The final independent observation's log-evidence increment was8.604664 instead
+of8.291402. The centered update preserves those relative weights and normalized
+logs. Conditional proposals use the same update after their unchanged first step.
+
+Four new tests cover common offsets, 80 represented-input 90-digit Decimal
+references, both full filter paths and recovery of underflowed probability mass
+from retained finite logs. This does not recover precision already lost while
+computing individual likelihoods or guarantee accurate absolute evidence at huge
+scales. A large cumulative log-evidence value can still round away small increments.
+
+The five retained development audits keep their inputs, seeds, all nonfloating
+leaves, decisions and indices unchanged. Floating leaves change by at most
+5.33e-15 after scaling each difference by max(1, both magnitudes); all five SVGs
+are regenerated with the updated numerical metadata. This is implementation
+roundoff on fixed controls, not a cross-platform or all-input error bound.
+`bash examples/verify_wheel.sh` repeats the full suite, all five complete audits
+and figure checks, seven module origins and eight documented input commands
+outside the checkout. CI requires that reproduction too.
