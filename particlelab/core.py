@@ -29,6 +29,21 @@ def normalize(log_weights):
     return maximum+math.log(total),[x/total for x in scaled]
 
 
+
+def _weight_update(prior_logs, likelihood):
+    # Remove the common likelihood before adding carried log weights. A large
+    # common observation term must not round away the relative prior masses.
+    if any(not math.isfinite(x) for x in likelihood):
+        raise ValueError('likelihoods must be finite')
+    offset=max(likelihood)
+    centered=[w+(value-offset) for w,value in zip(prior_logs,likelihood)]
+    peak=max(centered)
+    scaled=[math.exp(value-peak) for value in centered]
+    total=math.fsum(scaled);log_total=math.log(total)
+    logs=[(value-peak)-log_total for value in centered]
+    return offset+peak+log_total,[value/total for value in scaled],logs
+
+
 def systematic_resample(weights,offset):
     """N equally spaced CDF points with offset in [0,1), then divide by N.
 
@@ -111,14 +126,10 @@ def filter_particles(data,particles=256,seed=0,a=.9,process_std=.4,observation_s
                 increment=first_predictive;weights=[1/count]*count
                 log_weights=[-math.log(count)]*count
             else:
-                raw=[w+l for w,l in zip(prior_logs,likelihood)]
-                increment,weights=normalize(raw)
-                peak=max(raw);log_total=math.log(math.fsum(math.exp(v-peak) for v in raw))
-                log_weights=[(v-peak)-log_total for v in raw]
+                increment,weights,log_weights=_weight_update(prior_logs,likelihood)
         else:
             likelihood=[-.5*(math.log(2*math.pi*r*r)+(value-(x if observation=='linear' else x*x))**2/(r*r)) for x in states]
-            increment,weights=normalize([w+l for w,l in zip(prior_logs,likelihood)])
-            log_weights=[w+l-increment for w,l in zip(prior_logs,likelihood)]
+            increment,weights,log_weights=_weight_update(prior_logs,likelihood)
         log_evidence+=increment;mean,variance=moments(states,weights);ess=1/math.fsum(w*w for w in weights)
         resampled=ess<count*threshold
         parents=systematic_resample(weights,rng.random()) if resampled else list(range(count))
