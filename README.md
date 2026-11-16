@@ -194,3 +194,19 @@ roundoff on fixed controls, not a cross-platform or all-input error bound.
 `bash examples/verify_wheel.sh` repeats the full suite, all five complete audits
 and figure checks, seven module origins and eight documented input commands
 outside the checkout. CI requires that reproduction too.
+
+## Installed test and command replay
+
+`bash examples/verify_wheel.sh` builds a wheel and runs all 118 Python tests
+from a copied test directory outside the checkout. The tests read copied
+examples and figures, rather than reaching back into the source tree for their
+inputs. All seven package-module origins must be inside the temporary
+installation before and after the tests and command replay. No package source
+is copied into the test directory.
+
+The wheel check compares the full JSON output of eight documented input commands
+with same-runtime source runs, instead of only checking that they parse. It also
+retains the five complete audit comparisons and all five reproduced SVG checks.
+This is packaging and deterministic replay coverage, not an independent
+statistical validation or new evidence about particle-filter accuracy. The
+filter, references, original tests, static figures and tolerances are unchanged.
