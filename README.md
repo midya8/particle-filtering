@@ -1,4 +1,4 @@
-# ParticleLab
+# Particle filter
 
 ParticleLab estimates hidden scalar states from noisy observations with a
 bootstrap particle filter. It keeps the full weighted and resampled histories
@@ -11,6 +11,9 @@ data download.
 ![Particle filtering and finite-support failure](assets/particle-audit.svg)
 
 The static example ends with weight ESS 32 out of 32, one initial ancestor and zero particle variance. The exact posterior still has variance .000499972. Resampling resets weights, not missing state support. A no-resampling comparison exposes the same poor initial finite support; this is not a claim that resampling alone causes the error.
+
+The repository is now `particle-filter`. The Python import and CLI names stay
+`particlelab` for compatibility with existing scripts.
 
 ## Run locally
 
