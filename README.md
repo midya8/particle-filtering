@@ -1,6 +1,6 @@
 # Particle filtering
 
-ParticleLab estimates hidden scalar states from noisy observations with a
+This implementation estimates hidden scalar states from noisy observations with a
 bootstrap particle filter. It keeps the full weighted and resampled histories
 so you can compare weight concentration, state diversity and initial ancestry.
 An exact Kalman reference shows where finite particles miss uncertainty.
